@@ -5,11 +5,12 @@
 
 #define MIDI_BAUD_RATE 31250
 
-GPIO_InitTypeDef  GPIO_USART_InitStruct;
+GPIO_InitTypeDef  GPIO_USART_Rx_InitStruct;
+GPIO_InitTypeDef  GPIO_USART_Tx_InitStruct;
 USART_InitTypeDef  USART_InitStruct;
 
 void Delay(__IO uint32_t nCount);
-void UART5_Enable_Rx(void);
+void UART5_Enable_RxTx(void);
 
 int main(void)
 {
@@ -24,7 +25,7 @@ int main(void)
     LEDs_Init();
     
     /* Enable USART For Tx */
-    UART5_Enable_Rx();
+    UART5_Enable_RxTx();
 
     /* we have to do this */
 
@@ -43,28 +44,41 @@ void Delay(__IO uint32_t nCount)
   }
 }
 
-void UART5_Enable_Rx(void)
+void UART5_Enable_RxTx(void)
 {
     /* Enable Clocks */
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART5, ENABLE);
+    /* For UART Rx */
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+    /* For UART Tx */
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
-    /* Set up GPIO for alternate function */
+    /* Set up GPIO for alternate function for UART Rx*/
     GPIO_PinAFConfig(GPIOD,GPIO_PinSource2,GPIO_AF_UART5);
+    /* Set up GPIO for alternate function for UART Tx*/
+    GPIO_PinAFConfig(GPIOC,GPIO_PinSource12,GPIO_AF_UART5);
+
+    /* Configure GPIO to receive */
+    GPIO_USART_Rx_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_USART_Rx_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_USART_Rx_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_USART_Rx_InitStruct.GPIO_Pin = GPIO_Pin_2;
+    GPIO_Init(GPIOD, &GPIO_USART_Rx_InitStruct);
 
     /* Configure GPIO to transmit */
-    GPIO_USART_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_USART_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_USART_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-    GPIO_USART_InitStruct.GPIO_Pin = GPIO_Pin_2;
-    GPIO_Init(GPIOD, &GPIO_USART_InitStruct);
+    GPIO_USART_Tx_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+    GPIO_USART_Tx_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_USART_Tx_InitStruct.GPIO_OType = GPIO_OType_OD;
+    GPIO_USART_Tx_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+    GPIO_USART_Tx_InitStruct.GPIO_Pin = GPIO_Pin_12;
+    GPIO_Init(GPIOC, &GPIO_USART_Tx_InitStruct);
 
     /* Configure USART */
     USART_InitStruct.USART_BaudRate = MIDI_BAUD_RATE;
     USART_InitStruct.USART_WordLength = USART_WordLength_8b;
     USART_InitStruct.USART_StopBits = USART_StopBits_1;
     USART_InitStruct.USART_Parity = USART_Parity_No;
-    USART_InitStruct.USART_Mode = USART_Mode_Rx;
+    USART_InitStruct.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
     USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
     USART_Init(UART5, &USART_InitStruct);
 

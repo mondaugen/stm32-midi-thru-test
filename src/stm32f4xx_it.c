@@ -148,12 +148,18 @@ void SysTick_Handler(void)
  */
 void UART5_IRQHandler(void)
 {
-    if (USART_GetITStatus(UART5, USART_IT_RXNE)) {
-        /* Do stuff */
-        LEDs_Toggle();
-        USART_ClearITPendingBit(UART5, USART_IT_RXNE);
-    }
     NVIC_ClearPendingIRQ(UART5_IRQn);
+    if (USART_GetITStatus(UART5, USART_IT_RXNE)) {
+        LEDs_Toggle();
+        /* Do stuff */
+        uint16_t data;
+        data = USART_ReceiveData(UART5);
+        USART_ClearITPendingBit(UART5, USART_IT_RXNE);
+        /* Wait for previous write to complete */
+        while(!(UART5->SR & USART_SR_TC));
+        /* Send data */
+        USART_SendData(UART5, data);
+    }
 }
 
 
